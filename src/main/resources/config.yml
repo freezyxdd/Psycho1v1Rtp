@@ -1,0 +1,61 @@
+# ============================================
+#               1v1 Plugin
+# ============================================
+
+# World where players will be teleported for the 1v1
+world: "world"
+
+# ============================================
+# Settings
+# ============================================
+
+settings:
+  # If true, player must wear full armor to join queue
+  require-full-armor: true
+
+  # Random teleport radius (in blocks) from world spawn (default: 5000)
+  teleport-radius: 5000
+
+  # If true, when a match is found, players will be teleported
+  # 10 blocks apart and facing each other (enabled by default)
+  face-to-face:
+    enabled: true
+    distance: 10.0
+
+# ============================================
+# ActionBar Messages
+# Use § for colors
+# ============================================
+
+messages:
+  searching: "§7Searching for an opponent. Type /1v1 again to leave"
+  cancelled: "§7You left the 1v1 queue."
+  found: "§71v1 Found! Teleporting..."
+  no-armor: "§7You must wear a helmet, chestplate, leggings and boots."
+  only-player: "§7Only players can use this command."
+
+# ============================================
+# Sounds (modern minecraft format)
+# https://minecraft.wiki/w/Sounds.json
+# ============================================
+
+sounds:
+  searching:
+    sound: "ui.button.click"
+    volume: 1.0
+    pitch: 1.0
+
+  cancelled:
+    sound: "entity.item.break"
+    volume: 1.0
+    pitch: 1.0
+
+  found:
+    sound: "entity.ender_dragon.growl"
+    volume: 1.0
+    pitch: 1.0
+
+  error:
+    sound: "entity.item.break"
+    volume: 1.0
+    pitch: 1.2
