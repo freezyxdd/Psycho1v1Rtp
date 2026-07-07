@@ -13,7 +13,7 @@ public final class Main1v1 extends JavaPlugin {
         try {
             saveDefaultConfig();
         } catch (Exception e) {
-            getLogger().warning("Could not save default config.yml (missing inside jar).");
+            getLogger().warning("Could not save default config.yml.");
             getLogger().warning("Fix: put config.yml in src/main/resources/config.yml and rebuild.");
         }
 
