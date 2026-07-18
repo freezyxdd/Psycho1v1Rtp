@@ -14,6 +14,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
+
 public final class Fila1v1 {
 
     private final Main1v1 plugin;
@@ -78,49 +82,137 @@ public final class Fila1v1 {
 
     private void startMatch(Player p1, Player p2) {
 
-        String foundMsgRaw = plugin.getConfig().getString("messages.found", "§71v1 Found! Teleporting...");
+        // Verifição do Mundo
+        World world = selectMatchWorld();
+
+        if (world == null) {
+            plugin.getLogger().warning(
+                    "No valid 1v1 world found in config.yml!"
+            );
+            return;
+        }
+
+        // Mensagem mostrada quando a partida é encontrada
+        String foundMsgRaw = plugin.getConfig().getString(
+                "messages.found",
+                "§71v1 Found! Teleporting..."
+        );
+
         String foundMsg = foundMsgRaw == null ? "" : foundMsgRaw;
 
-        // Envia actionbar + som no scheduler do player (Folia-safe)
+        // Envia a mensagem e toca o som para o primeiro jogador
         p1.getScheduler().execute(plugin, () -> {
             p1.sendActionBar(Component.text(foundMsg));
             SomCore.playConfigured(p1, plugin, "sounds.found");
         }, null, 1L);
 
+        // Envia a mensagem e toca o som para o segundo jogador
         p2.getScheduler().execute(plugin, () -> {
             p2.sendActionBar(Component.text(foundMsg));
             SomCore.playConfigured(p2, plugin, "sounds.found");
         }, null, 1L);
 
-        String worldName = plugin.getConfig().getString("world", "world");
-        World world = Bukkit.getWorld(worldName);
+        // Lê as configurações do teleporte
+        int radius = plugin.getConfig().getInt(
+                "settings.teleport-radius",
+                5000
+        );
 
-        if (world == null) {
-            plugin.getLogger().warning("World not found: " + worldName);
-            return;
-        }
+        boolean faceToFace = plugin.getConfig().getBoolean(
+                "settings.face-to-face.enabled",
+                true
+        );
 
-        int radius = plugin.getConfig().getInt("settings.teleport-radius", 5000);
-        boolean faceToFace = plugin.getConfig().getBoolean("settings.face-to-face.enabled", true);
-        double distance = plugin.getConfig().getDouble("settings.face-to-face.distance", 10.0);
+        double distance = plugin.getConfig().getDouble(
+                "settings.face-to-face.distance",
+                10.0
+        );
 
+        // Procura dois locais seguros no mundo escolhido
         CompletableFuture<Location[]> future =
-                TeleporteCore.createPairAsync(world, radius, faceToFace, distance);
+                TeleporteCore.createPairAsync(
+                        world,
+                        radius,
+                        faceToFace,
+                        distance
+                );
 
         future.thenAccept(pair -> {
-            if (pair == null || pair.length < 2) return;
+            if (pair == null || pair.length < 2) {
+                return;
+            }
 
-            // Teleport no scheduler do player
-            p1.getScheduler().execute(plugin, () -> p1.teleportAsync(pair[0]), null, 1L);
-            p2.getScheduler().execute(plugin, () -> p2.teleportAsync(pair[1]), null, 1L);
+            // Teleporta os dois jogadores
+            p1.getScheduler().execute(
+                    plugin,
+                    () -> p1.teleportAsync(pair[0]),
+                    null,
+                    1L
+            );
+
+            p2.getScheduler().execute(
+                    plugin,
+                    () -> p2.teleportAsync(pair[1]),
+                    null,
+                    1L
+            );
 
         }).exceptionally(ex -> {
-            plugin.getLogger().warning("Failed to create teleport pair: " + ex.getMessage());
+            plugin.getLogger().warning(
+                    "Failed to create teleport pair: " + ex.getMessage()
+            );
+
             ex.printStackTrace();
             return null;
         });
     }
 
+
+    private World selectMatchWorld() {
+        boolean randomWorld = plugin.getConfig().getBoolean(
+                "settings.world-selection.random-world",
+                false
+        );
+
+        if (!randomWorld) {
+            String defaultWorldName = plugin.getConfig().getString(
+                    "settings.world-selection.default-world",
+                    "world"
+            );
+
+            if (defaultWorldName == null) {
+                return null;
+            }
+
+            return Bukkit.getWorld(defaultWorldName);
+        }
+
+        List<String> configuredWorlds = plugin.getConfig().getStringList(
+                "settings.world-selection.worlds"
+        );
+
+        List<World> validWorlds = new ArrayList<>();
+
+        for (String worldName : configuredWorlds) {
+            World configuredWorld = Bukkit.getWorld(worldName);
+
+            if (configuredWorld != null) {
+                validWorlds.add(configuredWorld);
+            } else {
+                plugin.getLogger().warning(
+                        "Configured 1v1 world is not loaded: " + worldName
+                );
+            }
+        }
+
+        if (validWorlds.isEmpty()) {
+            return null;
+        }
+
+        int randomIndex = ThreadLocalRandom.current().nextInt(validWorlds.size());
+
+        return validWorlds.get(randomIndex);
+    }
 
     private void startSearchingActionbar(Player player) {
         UUID id = player.getUniqueId();

@@ -1,0 +1,27 @@
+name: 1v1
+version: "1.0"
+main: me.studio.Main1v1
+api-version: "26.1.2"
+folia-supported: true
+
+commands:
+  1v1:
+    description: Join/leave the 1v1 queue
+    usage: /1v1
+    permission: psrtpqueue.use
+  rtpqueue:
+    description: Alias for /1v1
+    usage: /rtpqueue
+    permission: psrtpqueue.use
+  ps1v1:
+    description: 1v1 admin command
+    usage: /ps1v1 reload
+    permission: ps1v1.admin
+
+permissions:
+  ps1v1.admin:
+    description: Allows using /ps1v1
+    default: op
+  psrtpqueue.use:
+    description: Allows you to join the 1v1 queue
+    default: true
