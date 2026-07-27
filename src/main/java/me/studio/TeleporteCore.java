@@ -15,6 +15,7 @@ public final class TeleporteCore {
 
     private static final Random RNG = new Random();
     private static final int MAX_TRIES = 40;
+    private static final int NETHER_MAX_Y = 125;
 
     private static final Set<Material> UNSAFE_GROUND = EnumSet.of(
             Material.WATER, Material.LAVA,
@@ -84,27 +85,53 @@ public final class TeleporteCore {
     }
 
     private static Location safeAt(World world, int x, int z) {
-        int yTop = world.getHighestBlockYAt(x, z);
+        int startY;
 
-        Block ground = world.getBlockAt(x, yTop, z);
-        Material groundType = ground.getType();
+        if (world.getEnvironment() == World.Environment.NETHER) {
+            // Começa abaixo do teto de bedrock do Nether
+            startY = Math.min(NETHER_MAX_Y, world.getMaxHeight() - 3);
+        } else {
+            // Nos outros mundos, começa pelo bloco mais alto
+            startY = world.getHighestBlockYAt(x, z);
+        }
 
-        Block feet = world.getBlockAt(x, yTop + 1, z);
-        Block head = world.getBlockAt(x, yTop + 2, z);
+        for (int y = startY; y >= world.getMinHeight(); y--) {
+            Block ground = world.getBlockAt(x, y, z);
+            Block feet = world.getBlockAt(x, y + 1, z);
+            Block head = world.getBlockAt(x, y + 2, z);
 
+            Material groundType = ground.getType();
 
-        if (UNSAFE_GROUND.contains(groundType)) return null;
+            // O jogador precisa ficar sobre um bloco sólido
+            if (!groundType.isSolid()) {
+                continue;
+            }
 
+            // Evita blocos perigosos
+            if (UNSAFE_GROUND.contains(groundType)) {
+                continue;
+            }
 
-        if (!feet.isPassable()) return null;
-        if (!head.isPassable()) return null;
+            // Precisa haver espaço para os pés e para a cabeça
+            if (!feet.isPassable() || !head.isPassable()) {
+                continue;
+            }
 
+            // Evita nascer dentro de líquidos
+            if (feet.isLiquid() || head.isLiquid()) {
+                continue;
+            }
 
-        if (feet.getType() == Material.WATER || feet.getType() == Material.LAVA) return null;
+            return new Location(
+                    world,
+                    x + 0.5,
+                    y + 1,
+                    z + 0.5
+            );
+        }
 
-        return new Location(world, x + 0.5, yTop + 1, z + 0.5);
+        return null;
     }
-
     private static void lookAt(Location from, Location to) {
         Vector dir = to.toVector().subtract(from.toVector());
 

@@ -30,11 +30,6 @@ settings:
   # If true, players will be teleported apart and facing each other
   face-to-face:
     enabled: true
-    distance: 10.0# ============================================
-#               1v1 Plugin
-# ============================================
+    distance: 10.0#
 
-# ============================================
-# Settings
-# ============================================
 
