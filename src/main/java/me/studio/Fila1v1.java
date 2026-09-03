@@ -1,31 +1,26 @@
 package me.studio;
 
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
-import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 public final class Fila1v1 {
 
     private final Main1v1 plugin;
-
     private final ConcurrentLinkedQueue<UUID> queue = new ConcurrentLinkedQueue<>();
     private final Set<UUID> queued = ConcurrentHashMap.newKeySet();
-
-
     private final Map<UUID, ScheduledTask> actionbarTasks = new ConcurrentHashMap<>();
 
     public Fila1v1(Main1v1 plugin) {
@@ -39,134 +34,190 @@ public final class Fila1v1 {
     public void join(Player player) {
         UUID id = player.getUniqueId();
 
-        if (!queued.add(id)) return;
+        if (!queued.add(id)) {
+            return;
+        }
+
         queue.add(id);
-
         startSearchingActionbar(player);
-
-
         plugin.getServer().getGlobalRegionScheduler().execute(plugin, this::tryStartMatch);
     }
 
     public void leave(Player player) {
         UUID id = player.getUniqueId();
-
         stopSearchingActionbar(id);
-
         queued.remove(id);
         queue.remove(id);
     }
 
     private void tryStartMatch() {
-        if (queue.size() < 2) return;
-
-        UUID id1 = queue.poll();
-        UUID id2 = queue.poll();
-
-        if (id1 == null || id2 == null) return;
-
-        queued.remove(id1);
-        queued.remove(id2);
-
-
-        stopSearchingActionbar(id1);
-        stopSearchingActionbar(id2);
-
-        Player p1 = Bukkit.getPlayer(id1);
-        Player p2 = Bukkit.getPlayer(id2);
-
-        if (p1 == null || p2 == null || !p1.isOnline() || !p2.isOnline()) return;
-
-        startMatch(p1, p2);
-    }
-
-    private void startMatch(Player p1, Player p2) {
-
-        // Verifição do Mundo
-        World world = selectMatchWorld();
-
-        if (world == null) {
-            plugin.getLogger().warning(
-                    "No valid 1v1 world found in config.yml!"
-            );
-            return;
-        }
-
-        // Mensagem mostrada quando a partida é encontrada
-        String foundMsgRaw = plugin.getConfig().getString(
-                "messages.found",
-                "§71v1 Found! Teleporting..."
-        );
-
-        String foundMsg = foundMsgRaw == null ? "" : foundMsgRaw;
-
-        // Envia a mensagem e toca o som para o primeiro jogador
-        p1.getScheduler().execute(plugin, () -> {
-            p1.sendActionBar(Component.text(foundMsg));
-            SomCore.playConfigured(p1, plugin, "sounds.found");
-        }, null, 1L);
-
-        // Envia a mensagem e toca o som para o segundo jogador
-        p2.getScheduler().execute(plugin, () -> {
-            p2.sendActionBar(Component.text(foundMsg));
-            SomCore.playConfigured(p2, plugin, "sounds.found");
-        }, null, 1L);
-
-        // Lê as configurações do teleporte
-        int radius = plugin.getConfig().getInt(
-                "settings.teleport-radius",
-                5000
-        );
-
-        boolean faceToFace = plugin.getConfig().getBoolean(
-                "settings.face-to-face.enabled",
-                true
-        );
-
-        double distance = plugin.getConfig().getDouble(
-                "settings.face-to-face.distance",
-                10.0
-        );
-
-        // Procura dois locais seguros no mundo escolhido
-        CompletableFuture<Location[]> future =
-                TeleporteCore.createPairAsync(
-                        world,
-                        radius,
-                        faceToFace,
-                        distance
-                );
-
-        future.thenAccept(pair -> {
-            if (pair == null || pair.length < 2) {
+        while (true) {
+            Player p1 = pollNextOnlinePlayer();
+            if (p1 == null) {
                 return;
             }
 
-            // Teleporta os dois jogadores
-            p1.getScheduler().execute(
-                    plugin,
-                    () -> p1.teleportAsync(pair[0]),
-                    null,
-                    1L
-            );
+            Player p2 = pollNextOnlinePlayer();
+            if (p2 == null) {
+                requeuePlayer(p1, null);
+                return;
+            }
 
-            p2.getScheduler().execute(
-                    plugin,
-                    () -> p2.teleportAsync(pair[1]),
-                    null,
-                    1L
-            );
+            startMatch(p1, p2);
+        }
+    }
 
-        }).exceptionally(ex -> {
-            plugin.getLogger().warning(
-                    "Failed to create teleport pair: " + ex.getMessage()
-            );
+    private Player pollNextOnlinePlayer() {
+        while (true) {
+            UUID id = queue.poll();
+            if (id == null) {
+                return null;
+            }
 
-            ex.printStackTrace();
-            return null;
+            if (!queued.remove(id)) {
+                continue;
+            }
+
+            stopSearchingActionbar(id);
+
+            Player player = Bukkit.getPlayer(id);
+            if (player != null) {
+                return player;
+            }
+        }
+    }
+
+    private void startMatch(Player p1, Player p2) {
+        World world = selectMatchWorld();
+
+        if (world == null) {
+            plugin.getLogger().warning("No valid 1v1 world found in config.yml.");
+            notifyPlayer(p1, "no-valid-world", true);
+            notifyPlayer(p2, "no-valid-world", true);
+            return;
+        }
+
+        sendFoundFeedback(p1);
+        sendFoundFeedback(p2);
+
+        int radius = Math.max(0, plugin.getConfig().getInt("settings.teleport-radius", 5000));
+        boolean faceToFace = plugin.getConfig().getBoolean("settings.face-to-face.enabled", true);
+        double distance = plugin.getConfig().getDouble("settings.face-to-face.distance", 10.0);
+        if (distance <= 0.0) {
+            distance = 10.0;
+        }
+
+        UUID id1 = p1.getUniqueId();
+        UUID id2 = p2.getUniqueId();
+
+        CompletableFuture<Location[]> future = TeleporteCore.createPairAsync(
+                plugin,
+                world,
+                radius,
+                faceToFace,
+                distance
+        );
+
+        future.whenComplete((pair, throwable) -> {
+            if (throwable != null) {
+                plugin.getLogger().warning("Failed to create teleport pair: " + throwable.getMessage());
+            }
+
+            try {
+                plugin.getServer().getGlobalRegionScheduler().execute(plugin, () -> {
+                    if (throwable != null || pair == null || pair.length < 2 || pair[0] == null || pair[1] == null) {
+                        requeueIfOnline(id1, "teleport-failed");
+                        requeueIfOnline(id2, "teleport-failed");
+                        return;
+                    }
+
+                    Player online1 = Bukkit.getPlayer(id1);
+                    Player online2 = Bukkit.getPlayer(id2);
+
+                    if (online1 == null && online2 == null) {
+                        return;
+                    }
+
+                    if (online1 == null) {
+                        requeuePlayer(online2, "opponent-unavailable");
+                        return;
+                    }
+
+                    if (online2 == null) {
+                        requeuePlayer(online1, "opponent-unavailable");
+                        return;
+                    }
+
+                    teleportPlayer(online1, pair[0]);
+                    teleportPlayer(online2, pair[1]);
+                });
+            } catch (Throwable schedulingError) {
+                plugin.getLogger().warning("Could not finish 1v1 match scheduling: " + schedulingError.getMessage());
+            }
         });
     }
 
+    private void teleportPlayer(Player player, Location destination) {
+        player.getScheduler().execute(
+                plugin,
+                () -> player.teleportAsync(destination).exceptionally(throwable -> {
+                    plugin.getLogger().warning("Failed to teleport " + player.getName() + ": " + throwable.getMessage());
+                    return false;
+                }),
+                null,
+                1L
+        );
+    }
+
+    private void requeueIfOnline(UUID id, String messageKey) {
+        Player player = Bukkit.getPlayer(id);
+        if (player != null) {
+            requeuePlayer(player, messageKey);
+        }
+    }
+
+    private void requeuePlayer(Player player, String messageKey) {
+        UUID id = player.getUniqueId();
+
+        if (!queued.add(id)) {
+            return;
+        }
+
+        queue.add(id);
+        startSearchingActionbar(player);
+
+        if (messageKey != null) {
+            notifyPlayer(player, messageKey, true);
+        }
+
+        plugin.getServer().getGlobalRegionScheduler().execute(plugin, this::tryStartMatch);
+    }
+
+    private void sendFoundFeedback(Player player) {
+        player.getScheduler().execute(
+                plugin,
+                () -> {
+                    player.sendActionBar(plugin.getLanguageManager().component("found"));
+                    SomCore.playConfigured(player, plugin, "sounds.found");
+                },
+                null,
+                1L
+        );
+    }
+
+    private void notifyPlayer(Player player, String messageKey, boolean errorSound) {
+        player.getScheduler().execute(
+                plugin,
+                () -> {
+                    player.sendMessage(plugin.getLanguageManager().component(messageKey));
+                    if (errorSound) {
+                        SomCore.playConfigured(player, plugin, "sounds.error");
+                    }
+                },
+                null,
+                1L
+        );
+    }
 
     private World selectMatchWorld() {
         boolean randomWorld = plugin.getConfig().getBoolean(
@@ -180,7 +231,7 @@ public final class Fila1v1 {
                     "world"
             );
 
-            if (defaultWorldName == null) {
+            if (defaultWorldName == null || defaultWorldName.isBlank()) {
                 return null;
             }
 
@@ -199,9 +250,7 @@ public final class Fila1v1 {
             if (configuredWorld != null) {
                 validWorlds.add(configuredWorld);
             } else {
-                plugin.getLogger().warning(
-                        "Configured 1v1 world is not loaded: " + worldName
-                );
+                plugin.getLogger().warning("Configured 1v1 world is not loaded: " + worldName);
             }
         }
 
@@ -210,33 +259,28 @@ public final class Fila1v1 {
         }
 
         int randomIndex = ThreadLocalRandom.current().nextInt(validWorlds.size());
-
         return validWorlds.get(randomIndex);
     }
 
     private void startSearchingActionbar(Player player) {
         UUID id = player.getUniqueId();
-
-
         stopSearchingActionbar(id);
 
-        String msgRaw = plugin.getConfig().getString("messages.searching",
-                "§7Searching for an opponent. Type /1v1 again to leave");
-        String msg = msgRaw == null ? "" : msgRaw;
+        ScheduledTask task = player.getScheduler().runAtFixedRate(
+                plugin,
+                scheduledTask -> {
+                    if (!isQueued(id)) {
+                        scheduledTask.cancel();
+                        actionbarTasks.remove(id);
+                        return;
+                    }
 
-        player.sendActionBar(Component.text(msg));
-
-        ScheduledTask task = player.getScheduler().runAtFixedRate(plugin, (ScheduledTask t) -> {
-
-            if (!player.isOnline() || !isQueued(id)) {
-                t.cancel();
-                actionbarTasks.remove(id);
-                return;
-            }
-
-            player.sendActionBar(Component.text(msg));
-
-        }, null, 1L, 20L);
+                    player.sendActionBar(plugin.getLanguageManager().component("searching"));
+                },
+                () -> actionbarTasks.remove(id),
+                1L,
+                20L
+        );
 
         actionbarTasks.put(id, task);
     }
