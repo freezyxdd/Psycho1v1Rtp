@@ -1,25 +1,25 @@
 # Psycho1v1Rtp
 
-Simple 1v1 RTP queue plugin for Minecraft servers.
+Plugin simples de fila 1v1 com RTP para servidores Minecraft.
 
-Players use `/1v1` to join the queue. When two players are available, the plugin finds a safe random location and teleports them to the match.
+O jogador usa `/1v1` para entrar na fila. Quando entram dois jogadores, o plugin procura um local seguro e teleporta os dois para começar a luta.
 
-Supports Paper, Purpur and Folia.
+Funciona com Paper, Purpur e Folia.
 
 ## Features
 
-- 1v1 matchmaking queue
-- `/1v1` to join or leave the queue
-- `/rtpqueue` alias
-- Safe random teleport
-- Fixed or random world selection
-- Configurable teleport radius
-- Optional full armor requirement
-- Configurable distance between players
-- Optional face-to-face teleport
-- Configurable sounds
-- English and Brazilian Portuguese
-- Custom messages with MiniMessage
+- fila automática de 1v1
+- `/1v1` para entrar ou sair da fila
+- `/rtpqueue` como alias
+- RTP seguro
+- mundo fixo ou aleatório
+- raio do teleporte configurável
+- opção de exigir armadura completa
+- distância entre os jogadores configurável
+- opção de deixar os jogadores olhando um para o outro
+- sons configuráveis
+- inglês e português do Brasil
+- mensagens personalizáveis com MiniMessage
 - `/ps1v1 reload`
 
 ## Commands
@@ -32,16 +32,15 @@ Supports Paper, Purpur and Folia.
 
 ## Installation
 
-1. Download the plugin JAR.
-2. Put it inside the `plugins` folder.
-3. Start the server.
-4. Edit the config if needed.
+1. Coloque o JAR na pasta `plugins`.
+2. Inicie o servidor.
+3. Edite o `config.yml` se quiser mudar alguma coisa.
 
-Requires Java 21.
+Java 21 é necessário.
 
-## Configuration
+## Config
 
-Default `config.yml`:
+Config padrão:
 
 ```yaml
 language: "en"
@@ -84,9 +83,9 @@ sounds:
     pitch: 1.2
 ```
 
-### Worlds
+### Mundos
 
-To always use the same world:
+Para usar sempre o mesmo mundo:
 
 ```yaml
 world-selection:
@@ -94,7 +93,7 @@ world-selection:
   default-world: "world"
 ```
 
-To randomly choose between multiple worlds:
+Para sortear entre vários mundos:
 
 ```yaml
 world-selection:
@@ -113,32 +112,32 @@ face-to-face:
   distance: 10.0
 ```
 
-`distance` controls how far apart the players are teleported. If `enabled` is `true`, they will also face each other.
+`distance` define a distância entre os dois jogadores. Com `enabled: true`, eles também são posicionados olhando um para o outro.
 
 ## Languages
 
-Available languages:
+O plugin vem com:
 
 - `en`
 - `pt_BR`
 
-Choose one in `config.yml`:
+Para usar português:
 
 ```yaml
 language: "pt_BR"
 ```
 
-The plugin also accepts `pt`, `ptbr` and `pt-br`.
+Também aceita `pt`, `ptbr` e `pt-br`.
 
-Language files are created in:
+Os arquivos ficam em:
 
 ```text
 plugins/1v1/languages/
 ```
 
-All messages can be changed there using MiniMessage.
+Todas as mensagens podem ser editadas com MiniMessage.
 
-Example:
+Exemplo:
 
 ```yaml
 messages:
@@ -146,11 +145,7 @@ messages:
   found: "<green>1v1 found! Teleporting...</green>"
 ```
 
-After changing the config or language files, use:
-
-```text
-/ps1v1 reload
-```
+Depois de mudar o config ou as mensagens, use `/ps1v1 reload`.
 
 ## Permissions
 
@@ -158,14 +153,6 @@ After changing the config or language files, use:
 | --- | --- |
 | `psrtpqueue.use` | Everyone |
 | `ps1v1.admin` | OP |
-
-## Building
-
-```bash
-./gradlew build
-```
-
-The JAR will be generated in `build/libs/`.
 
 ## Support
 
