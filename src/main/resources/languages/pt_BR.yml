@@ -1,0 +1,13 @@
+messages:
+  searching: "<gray>Procurando um oponente. Digite <white>/1v1</white> novamente para sair.</gray>"
+  cancelled: "<gray>Você saiu da fila de 1v1.</gray>"
+  found: "<green>1v1 encontrado! Teleportando...</green>"
+  no-armor: "<red>Você precisa estar usando capacete, peitoral, calças e botas.</red>"
+  only-player: "<red>Apenas jogadores podem usar este comando.</red>"
+  no-permission: "<red>Você não tem permissão para usar este comando.</red>"
+  admin-usage: "<gray>Uso: <white>/ps1v1 reload</white></gray>"
+  admin-reload-success: "<green>Configuração e arquivos de idioma recarregados com sucesso.</green>"
+  admin-unknown: "<red>Subcomando desconhecido. Use <white>/ps1v1 reload</white>.</red>"
+  no-valid-world: "<red>Nenhum mundo válido para 1v1 está disponível. Entre em contato com um administrador.</red>"
+  teleport-failed: "<red>Não foi possível encontrar um local seguro para o teleporte. Você voltou para a fila.</red>"
+  opponent-unavailable: "<yellow>Seu oponente ficou indisponível. Você voltou para a fila.</yellow>"
