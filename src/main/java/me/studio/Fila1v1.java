@@ -59,7 +59,7 @@ public final class Fila1v1 {
 
             Player p2 = pollNextOnlinePlayer();
             if (p2 == null) {
-                requeuePlayer(p1, null);
+                requeuePlayer(p1, null, false);
                 return;
             }
 
@@ -126,8 +126,8 @@ public final class Fila1v1 {
             try {
                 plugin.getServer().getGlobalRegionScheduler().execute(plugin, () -> {
                     if (throwable != null || pair == null || pair.length < 2 || pair[0] == null || pair[1] == null) {
-                        requeueIfOnline(id1, "teleport-failed");
-                        requeueIfOnline(id2, "teleport-failed");
+                        requeueIfOnline(id1, "teleport-failed", false);
+                        requeueIfOnline(id2, "teleport-failed", false);
                         return;
                     }
 
@@ -139,12 +139,12 @@ public final class Fila1v1 {
                     }
 
                     if (online1 == null) {
-                        requeuePlayer(online2, "opponent-unavailable");
+                        requeuePlayer(online2, "opponent-unavailable", true);
                         return;
                     }
 
                     if (online2 == null) {
-                        requeuePlayer(online1, "opponent-unavailable");
+                        requeuePlayer(online1, "opponent-unavailable", true);
                         return;
                     }
 
@@ -158,25 +158,36 @@ public final class Fila1v1 {
     }
 
     private void teleportPlayer(Player player, Location destination) {
+        UUID id = player.getUniqueId();
+        String playerName = player.getName();
+
         player.getScheduler().execute(
                 plugin,
-                () -> player.teleportAsync(destination).exceptionally(throwable -> {
-                    plugin.getLogger().warning("Failed to teleport " + player.getName() + ": " + throwable.getMessage());
-                    return false;
+                () -> player.teleportAsync(destination).whenComplete((success, throwable) -> {
+                    if (throwable != null || !Boolean.TRUE.equals(success)) {
+                        plugin.getLogger().warning("Failed to teleport " + playerName + ".");
+                        plugin.getServer().getGlobalRegionScheduler().execute(
+                                plugin,
+                                () -> requeueIfOnline(id, "teleport-failed", false)
+                        );
+                    }
                 }),
-                null,
+                () -> plugin.getServer().getGlobalRegionScheduler().execute(
+                        plugin,
+                        () -> requeueIfOnline(id, "teleport-failed", false)
+                ),
                 1L
         );
     }
 
-    private void requeueIfOnline(UUID id, String messageKey) {
+    private void requeueIfOnline(UUID id, String messageKey, boolean triggerMatch) {
         Player player = Bukkit.getPlayer(id);
         if (player != null) {
-            requeuePlayer(player, messageKey);
+            requeuePlayer(player, messageKey, triggerMatch);
         }
     }
 
-    private void requeuePlayer(Player player, String messageKey) {
+    private void requeuePlayer(Player player, String messageKey, boolean triggerMatch) {
         UUID id = player.getUniqueId();
 
         if (!queued.add(id)) {
@@ -190,7 +201,9 @@ public final class Fila1v1 {
             notifyPlayer(player, messageKey, true);
         }
 
-        plugin.getServer().getGlobalRegionScheduler().execute(plugin, this::tryStartMatch);
+        if (triggerMatch) {
+            plugin.getServer().getGlobalRegionScheduler().execute(plugin, this::tryStartMatch);
+        }
     }
 
     private void sendFoundFeedback(Player player) {
@@ -282,7 +295,12 @@ public final class Fila1v1 {
                 20L
         );
 
-        actionbarTasks.put(id, task);
+        if (task != null) {
+            actionbarTasks.put(id, task);
+        } else {
+            queued.remove(id);
+            queue.remove(id);
+        }
     }
 
     private void stopSearchingActionbar(UUID id) {
