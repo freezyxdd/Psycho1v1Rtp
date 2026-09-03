@@ -1,60 +1,95 @@
 # ============================================
-#               1v1RtpQueue
+#              Psycho1v1Rtp
 # ============================================
 
+# Plugin language.
 # Available bundled languages:
 # - en
 # - pt_BR
+#
+# Brazilian Portuguese aliases also accepted:
+# - pt
+# - ptbr
+# - pt-br
 language: "en"
 
+# ============================================
+# Settings
+# ============================================
 settings:
-  # If true, players must wear full armor to join the queue.
+  # If true, players must wear a helmet, chestplate,
+  # leggings and boots before joining the queue.
   require-full-armor: true
 
-  # Random teleport radius in blocks from the selected world's spawn.
+  # Maximum random teleport distance, in blocks,
+  # from the selected world's spawn point.
   teleport-radius: 5000
 
-  # World selection for 1v1 matches.
+  # ==========================================
+  # Match world selection
+  # ==========================================
   world-selection:
-    # If true, selects a random loaded world from the list below.
+    # false = always use default-world
+    # true  = randomly select a loaded world from worlds
     random-world: false
 
-    # Used when random-world is false.
+    # Used only when random-world is false.
     default-world: "world"
 
-    # Worlds available for random selection.
+    # Used only when random-world is true.
+    # Invalid or unloaded worlds are ignored.
     worlds:
       - "world"
       - "newworld"
       - "test"
 
-  # Players are always placed apart using this distance.
-  # If enabled is true, they will also face each other.
+  # ==========================================
+  # Match positioning
+  # ==========================================
+  # Players are always separated by distance.
+  # If enabled is true, both players will also
+  # be rotated so they face each other.
   face-to-face:
     enabled: true
     distance: 10.0
 
 # ============================================
 # Sounds
-# Minecraft namespaced sound keys are supported.
 # ============================================
+# Use Minecraft namespaced sound keys.
+# Volume and pitch can be customized separately.
 sounds:
+  # Played when a player enters the queue.
   searching:
     sound: "ui.button.click"
     volume: 1.0
     pitch: 1.0
 
+  # Played when a player leaves the queue.
   cancelled:
     sound: "entity.item.break"
     volume: 1.0
     pitch: 1.0
 
+  # Played when an opponent is found.
   found:
     sound: "entity.ender_dragon.growl"
     volume: 1.0
     pitch: 1.0
 
+  # Played when an error occurs.
   error:
     sound: "entity.item.break"
     volume: 1.0
     pitch: 1.2
+
+# ============================================
+# Messages
+# ============================================
+# All messages are stored in:
+# languages/en.yml
+# languages/pt_BR.yml
+#
+# Messages support MiniMessage formatting.
+# After editing config.yml or a language file,
+# use /ps1v1 reload to apply the changes.
