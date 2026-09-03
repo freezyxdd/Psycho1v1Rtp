@@ -1,0 +1,13 @@
+messages:
+  searching: "<gray>Searching for an opponent. Type <white>/1v1</white> again to leave.</gray>"
+  cancelled: "<gray>You left the 1v1 queue.</gray>"
+  found: "<green>1v1 found! Teleporting...</green>"
+  no-armor: "<red>You must wear a helmet, chestplate, leggings and boots.</red>"
+  only-player: "<red>Only players can use this command.</red>"
+  no-permission: "<red>You do not have permission to use this command.</red>"
+  admin-usage: "<gray>Usage: <white>/ps1v1 reload</white></gray>"
+  admin-reload-success: "<green>Configuration and language files reloaded successfully.</green>"
+  admin-unknown: "<red>Unknown subcommand. Use <white>/ps1v1 reload</white>.</red>"
+  no-valid-world: "<red>No valid 1v1 world is available. Please contact a server administrator.</red>"
+  teleport-failed: "<red>A safe teleport location could not be found. You were returned to the queue.</red>"
+  opponent-unavailable: "<yellow>Your opponent became unavailable. You were returned to the queue.</yellow>"
