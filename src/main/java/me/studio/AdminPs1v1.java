@@ -18,37 +18,42 @@ public final class AdminPs1v1 implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        LanguageManager messages = plugin.getLanguageManager();
 
         if (!sender.hasPermission("ps1v1.admin")) {
-            sender.sendMessage("§cNo permission.");
+            sender.sendMessage(messages.component("no-permission"));
             return true;
         }
 
         if (args.length == 0) {
-            sender.sendMessage("§7Usage: §f/ps1v1 reload");
+            sender.sendMessage(messages.component("admin-usage"));
             return true;
         }
 
         if (args[0].equalsIgnoreCase("reload")) {
             plugin.reloadConfig();
-            sender.sendMessage("§aConfig reloaded.");
+            plugin.getLanguageManager().reload();
+            sender.sendMessage(plugin.getLanguageManager().component("admin-reload-success"));
             return true;
         }
 
-        sender.sendMessage("§7Unknown subcommand. Use: §f/ps1v1 reload");
+        sender.sendMessage(messages.component("admin-unknown"));
         return true;
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-
-        if (!sender.hasPermission("ps1v1.admin")) return List.of();
+        if (!sender.hasPermission("ps1v1.admin")) {
+            return List.of();
+        }
 
         if (args.length == 1) {
             List<String> list = new ArrayList<>();
             String start = args[0].toLowerCase();
 
-            if ("reload".startsWith(start)) list.add("reload");
+            if ("reload".startsWith(start)) {
+                list.add("reload");
+            }
             return list;
         }
 
