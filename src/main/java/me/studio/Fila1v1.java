@@ -239,10 +239,21 @@ public final class Fila1v1 {
         );
 
         if (!randomWorld) {
-            String defaultWorldName = plugin.getConfig().getString(
-                    "settings.world-selection.default-world",
-                    "world"
-            );
+            String defaultWorldPath = "settings.world-selection.default-world";
+            String legacyDefaultWorldPath = "settings.world-selection.default-word";
+            String defaultWorldName;
+
+            if (plugin.getConfig().isSet(defaultWorldPath)) {
+                defaultWorldName = plugin.getConfig().getString(defaultWorldPath);
+            } else if (plugin.getConfig().isSet(legacyDefaultWorldPath)) {
+                defaultWorldName = plugin.getConfig().getString(legacyDefaultWorldPath);
+                plugin.getLogger().warning(
+                        "Deprecated config key 'settings.world-selection.default-word' detected. " +
+                                "Please rename it to 'settings.world-selection.default-world'."
+                );
+            } else {
+                defaultWorldName = plugin.getConfig().getString(defaultWorldPath, "world");
+            }
 
             if (defaultWorldName == null || defaultWorldName.isBlank()) {
                 return null;
